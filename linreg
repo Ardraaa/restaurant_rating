@@ -2,34 +2,40 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import pandas as pd
-df=pd.read_csv('Dataset .csv')
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error
+df=pd.read_csv('preprocessed_data.csv')
 df
-# Assuming 'X' contains your features and 'y' is your target variable
-# Replace 'X' and 'y' with your actual data
-X = df[['Price range', 'Aggregate rating']]
-y = df['Votes']
+#Select features and target
+X = df[['Price range', 'Votes', 'Cuisines']]  
+y = df['Aggregate rating']
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('cuisines', OneHotEncoder(handle_unknown='ignore'), ['Cuisines'])  # One-hot encode the 'Cuisines' column
+    ],
+    remainder='passthrough'  
+)
+
+# Create a pipeline with preprocessing and the linear regression model
+pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', LinearRegression())
+])
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Train the model
 model = LinearRegression()
-# Train the model using the training sets
-model.fit(X_train, y_train)
-# Make predictions using the testing set
-y_pred = model.predict(X_test)
-# The coefficients
-print('Coefficients:', model.coef_)
-# The mean squared error
-print('Mean squared error:', mean_squared_error(y_test, y_pred))
-# The coefficient of determination: 1 is perfect prediction
-print('Coefficient of determination (R^2):', r2_score(y_test, y_pred))
+pipeline.fit(X_train, y_train)
+predictions = pipeline.predict(X_test)
+print("r2_score:", pipeline.score(X_test, y_test))
+mse = mean_squared_error(y_test, predictions)
+print(f" Mean squared error: {mse}")
+# Plot actual vs. predicted values
 import matplotlib.pyplot as plt
-plt.scatter(y_test,y_pred,alpha=0.5)
-plt.plot([y.min(),y.max()],[y.min(),y.max()],color="red")
-plt.xlabel("Actual values")
-plt.ylabel("Predicted values")
-plt.title("Actual vs Predicted(linear regression)")
-plt.show()
-plt.scatter(y_pred,y_test-y_pred,alpha=0.5)
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.title("Residual pllot(Linear regression)")
+plt.scatter(y_test, y_pred)
+plt.xlabel('Actual Ratings')
+plt.ylabel('Predicted Ratings')
+plt.title('Actual vs. Predicted Ratings')
 plt.show()
